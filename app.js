@@ -148,6 +148,7 @@ function setupEventListeners() {
   // Friend Selector
   selectFriend.addEventListener('change', (e) => {
     state.activeFriendId = e.target.value;
+    localStorage.setItem('active_explorer_id', e.target.value);
     updateActiveFriendUI();
   });
 
@@ -315,9 +316,12 @@ async function loadData() {
     fallbackToLocalData();
   }
 
-  // Set active explorer
+  // Set active explorer (load from local storage to lock selection)
+  const savedActiveId = localStorage.getItem('active_explorer_id');
   if (state.friends.length > 0) {
-    if (!state.activeFriendId || !state.friends.some(f => f.id === state.activeFriendId)) {
+    if (savedActiveId && state.friends.some(f => f.id === savedActiveId)) {
+      state.activeFriendId = savedActiveId;
+    } else if (!state.activeFriendId || !state.friends.some(f => f.id === state.activeFriendId)) {
       state.activeFriendId = state.friends[0].id;
     }
   } else {
@@ -387,6 +391,7 @@ async function createFriend(name, avatar) {
         state.friends.push(data[0]);
         state.visited[data[0].id] = new Set();
         state.activeFriendId = data[0].id;
+        localStorage.setItem('active_explorer_id', data[0].id);
       }
     } catch (err) {
       alert('Failed to save friend to Supabase: ' + err.message);
@@ -397,6 +402,7 @@ async function createFriend(name, avatar) {
     state.friends.push(newFriend);
     state.visited[newFriend.id] = new Set();
     state.activeFriendId = newFriend.id;
+    localStorage.setItem('active_explorer_id', newFriend.id);
     saveLocalData();
   }
 
@@ -780,6 +786,7 @@ function renderLeaderboard() {
     // Click leaderboard row to make active
     div.addEventListener('click', () => {
       state.activeFriendId = item.id;
+      localStorage.setItem('active_explorer_id', item.id);
       renderFriendDropdown();
       updateActiveFriendUI();
     });
