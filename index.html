@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Globetrotter - Travel Leaderboard</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Supabase JS Client CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <!-- Header / Navigation -->
+  <header>
+    <div class="header-container">
+      <div class="logo">
+        <span class="logo-emoji">✈️</span>
+        <h1>GLOBETROTTER</h1>
+      </div>
+      <p class="tagline">Who is the ultimate explorer? 🌍</p>
+      <div class="header-actions">
+        <span id="supabase-status" class="status-badge status-disconnected">
+          <span class="status-dot"></span> Offline Mode
+        </span>
+        <button id="btn-settings" class="btn btn-secondary">🔌 Supabase Setup</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Row 1: Leaderboard & Map -->
+    <div class="grid-row row-top">
+      
+      <!-- Leaderboard Card -->
+      <section class="card leaderboard-card">
+        <div class="card-header">
+          <h2>🏆 Explorer Leaderboard</h2>
+          <button id="btn-add-friend" class="btn btn-primary btn-sm">+ Add Friend</button>
+        </div>
+        <div class="card-body">
+          <div id="leaderboard-list" class="leaderboard-list">
+            <!-- Dynamic Leaderboard Items go here -->
+            <div class="loading-spinner">Loading explorer ranks...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Map Card -->
+      <section class="card map-card">
+        <div class="card-header">
+          <h2>🗺️ Global Footprint</h2>
+          <div class="map-stats">
+            <span id="map-country-count">0/180 Countries Visited</span>
+          </div>
+        </div>
+        <div class="card-body map-container">
+          <div id="map-wrapper" class="map-wrapper">
+            <!-- We will inject the world-map.svg directly here using fetch and manipulate it in app.js -->
+            <div class="loading-spinner">Loading interactive map...</div>
+          </div>
+          <div id="map-tooltip" class="map-tooltip hidden"></div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Row 2: Friends Details & Log Visits -->
+    <div class="grid-row row-bottom">
+      
+      <!-- Travel Log / Checkboxes -->
+      <section class="card log-card">
+        <div class="card-header">
+          <h2>✏️ Log Visited Places</h2>
+          <div class="active-friend-selector">
+            <label for="select-friend">Editing: </label>
+            <select id="select-friend">
+              <!-- Dynamically populated friends -->
+            </select>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="search-filter-bar">
+            <input type="text" id="search-countries" placeholder="🔍 Search country name...">
+          </div>
+          
+          <!-- Continent Tabs -->
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="all">All</button>
+            <button class="tab-btn" data-tab="Africa">Africa</button>
+            <button class="tab-btn" data-tab="Americas">Americas</button>
+            <button class="tab-btn" data-tab="Asia">Asia</button>
+            <button class="tab-btn" data-tab="Europe">Europe</button>
+            <button class="tab-btn" data-tab="Oceania">Oceania</button>
+          </div>
+
+          <div id="country-list-grid" class="country-list-grid">
+            <!-- Dynamic checkboxes go here -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats and Achievements Card -->
+      <section class="card stats-card">
+        <div class="card-header">
+          <h2>🎖️ Explorer Profile & Badges</h2>
+        </div>
+        <div class="card-body">
+          <div id="active-profile-header" class="profile-header">
+            <!-- Will show active explorer's name and summary stats -->
+          </div>
+          
+          <div class="profile-section-title">Continent Progress</div>
+          <div id="continent-progress-bars" class="continent-progress-bars">
+            <!-- Dynamically populated progress bars -->
+          </div>
+
+          <div class="profile-section-title">Unlocked Badges</div>
+          <div id="badges-grid" class="badges-grid">
+            <!-- Dynamically populated badges -->
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MODAL: Supabase Configuration -->
+  <div id="modal-settings" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🔌 Supabase Connection Settings</h3>
+        <span class="modal-close" id="modal-settings-close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p>To enable real-time sync with your friends, create a project on Supabase and enter your details below:</p>
+        
+        <div class="form-group">
+          <label for="sb-url">Supabase Project URL</label>
+          <input type="text" id="sb-url" placeholder="https://your-project.supabase.co">
+        </div>
+        
+        <div class="form-group">
+          <label for="sb-key">Supabase Anon Key</label>
+          <input type="password" id="sb-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+        </div>
+
+        <div class="settings-actions">
+          <button id="btn-save-settings" class="btn btn-primary">Connect & Sync</button>
+          <button id="btn-clear-settings" class="btn btn-secondary">Reset to Local Storage</button>
+        </div>
+        
+        <div class="settings-help">
+          <h4>💡 Quick SQL Setup</h4>
+          <p>Run the SQL script from our repository in your Supabase SQL editor to create the necessary tables.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Add Friend -->
+  <div id="modal-friend" class="modal-overlay hidden">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h3>👤 Add New Explorer</h3>
+        <span class="modal-close" id="modal-friend-close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <form id="add-friend-form">
+          <div class="form-group">
+            <label for="friend-name">Name</label>
+            <input type="text" id="friend-name" required placeholder="Enter name...">
+          </div>
+          
+          <div class="form-group">
+            <label>Choose Avatar Emoji</label>
+            <div class="avatar-selector">
+              <span class="avatar-option selected" data-emoji="🧑‍🚀">🧑‍🚀</span>
+              <span class="avatar-option" data-emoji="🤠">🤠</span>
+              <span class="avatar-option" data-emoji="🏕️">🏕️</span>
+              <span class="avatar-option" data-emoji="🎒">🎒</span>
+              <span class="avatar-option" data-emoji="🗺️">🗺️</span>
+              <span class="avatar-option" data-emoji="🕶️">🕶️</span>
+              <span class="avatar-option" data-emoji="✈️">✈️</span>
+              <span class="avatar-option" data-emoji="⛵">⛵</span>
+              <span class="avatar-option" data-emoji="🏄">🏄</span>
+              <span class="avatar-option" data-emoji="🦁">🦁</span>
+              <span class="avatar-option" data-emoji="🐼">🐼</span>
+              <span class="avatar-option" data-emoji="🍕">🍕</span>
+            </div>
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-block">Add Friend</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="countries.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
