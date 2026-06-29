@@ -220,18 +220,20 @@ async function handleQuickAdd() {
 }
 
 // --- Database & Local Storage Functions ---
+const DEFAULT_SB_URL = 'https://emiqdagisbjyafwnwjhu.supabase.co';
+const DEFAULT_SB_KEY = 'sb_publishable_Ct3NnRd6JgxszTHB4t7-xw_jswQmkZc';
+
 function loadSupabaseSettings() {
-  const url = localStorage.getItem('sb_url');
-  const key = localStorage.getItem('sb_key');
-  if (url && key) {
-    inputSbUrl.value = url;
-    inputSbKey.value = key;
-  }
+  const url = localStorage.getItem('sb_url') || DEFAULT_SB_URL;
+  const key = localStorage.getItem('sb_key') || DEFAULT_SB_KEY;
+  inputSbUrl.value = url;
+  inputSbKey.value = key;
 }
 
 async function initDatabase() {
-  const url = localStorage.getItem('sb_url');
-  const key = localStorage.getItem('sb_key');
+  const isDisabled = localStorage.getItem('sb_disabled') === 'true';
+  const url = localStorage.getItem('sb_url') || (isDisabled ? '' : DEFAULT_SB_URL);
+  const key = localStorage.getItem('sb_key') || (isDisabled ? '' : DEFAULT_SB_KEY);
 
   if (url && key) {
     try {
@@ -447,6 +449,7 @@ async function saveSettings() {
 
   localStorage.setItem('sb_url', url);
   localStorage.setItem('sb_key', key);
+  localStorage.removeItem('sb_disabled');
   
   hideModal(modalSettings);
   
@@ -461,6 +464,7 @@ async function saveSettings() {
 async function clearSettings() {
   localStorage.removeItem('sb_url');
   localStorage.removeItem('sb_key');
+  localStorage.setItem('sb_disabled', 'true');
   inputSbUrl.value = '';
   inputSbKey.value = '';
   
