@@ -233,8 +233,8 @@ async function handleQuickAdd() {
 }
 
 // --- Database & Local Storage Functions ---
-const DEFAULT_SB_URL = 'https://emiqdagisbjyafwnwjhu.supabase.co';
-const DEFAULT_SB_KEY = 'sb_publishable_Ct3NnRd6JgxszTHB4t7-xw_jswQmkZc';
+const DEFAULT_SB_URL = 'https://omuvrfsnqiztzcxlwvsb.supabase.co';
+const DEFAULT_SB_KEY = 'sb_publishable_PmBzF6VZQzhbKemz-ziVFQ_50MG-C44';
 
 function loadSupabaseSettings() {
   const url = localStorage.getItem('sb_url') || DEFAULT_SB_URL;
