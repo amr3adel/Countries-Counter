@@ -106,11 +106,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // --- Event Listeners Setup ---
 function setupEventListeners() {
-  // Modals
-  btnSettings.addEventListener('click', () => showModal(modalSettings));
-  modalSettingsClose.addEventListener('click', () => hideModal(modalSettings));
-  btnSaveSettings.addEventListener('click', saveSettings);
-  btnClearSettings.addEventListener('click', clearSettings);
+  // Modals (safeguarded)
+  if (btnSettings) btnSettings.addEventListener('click', () => showModal(modalSettings));
+  if (modalSettingsClose) modalSettingsClose.addEventListener('click', () => hideModal(modalSettings));
+  if (btnSaveSettings) btnSaveSettings.addEventListener('click', saveSettings);
+  if (btnClearSettings) btnClearSettings.addEventListener('click', clearSettings);
 
   // Add Friend Form (Inline)
   addFriendFormInline.addEventListener('submit', async (e) => {
