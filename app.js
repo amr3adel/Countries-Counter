@@ -101,8 +101,22 @@ function setupEventListeners() {
     if (name) {
       createFriend(name, emoji);
       addFriendFormInline.reset();
+      
+      // Auto scroll and focus on countries input
+      setTimeout(() => {
+        const logCard = document.querySelector('.log-card');
+        if (logCard) {
+          logCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          logCard.classList.add('flash-glow');
+          setTimeout(() => logCard.classList.remove('flash-glow'), 2000);
+        }
+        if (inputQuickAddCountry) {
+          inputQuickAddCountry.focus();
+        }
+      }, 300);
     }
   });
+
 
   // Quick Add Country
   btnQuickAdd.addEventListener('click', handleQuickAdd);

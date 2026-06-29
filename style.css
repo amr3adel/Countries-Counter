@@ -957,3 +957,14 @@ path.country-path.visited-by-multiple {
   50% { transform: scale(1.2); opacity: 0.7; }
   100% { transform: scale(1); opacity: 1; }
 }
+
+@keyframes card-glow-pulse {
+  0% { box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); border-color: var(--card-border); }
+  50% { box-shadow: 0 0 30px rgba(0, 242, 254, 0.4); border-color: var(--color-primary); }
+  100% { box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); border-color: var(--card-border); }
+}
+
+.card.flash-glow {
+  animation: card-glow-pulse 2s ease;
+}
+
