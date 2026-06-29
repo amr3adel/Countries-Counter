@@ -420,7 +420,7 @@ function renderApp() {
 }
 
 function renderFriendDropdown() {
-  const prevSelected = selectFriend.value;
+  const currentActiveId = state.activeFriendId;
   selectFriend.innerHTML = '';
   
   if (state.friends.length === 0) {
@@ -435,9 +435,8 @@ function renderFriendDropdown() {
     selectFriend.appendChild(opt);
   });
 
-  if (state.friends.some(f => f.id === prevSelected)) {
-    selectFriend.value = prevSelected;
-    state.activeFriendId = prevSelected;
+  if (currentActiveId && state.friends.some(f => f.id === currentActiveId)) {
+    selectFriend.value = currentActiveId;
   } else {
     selectFriend.value = state.friends[0].id;
     state.activeFriendId = state.friends[0].id;
