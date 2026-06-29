@@ -1,6 +1,6 @@
-# ✈️ Globetrotter - Friends Travel Leaderboard
+# ✈️ Ibnbatota - Friends Travel Leaderboard
 
-Globetrotter is a fun, interactive, and visually stunning web application for you and your friends to track the countries you've visited, earn badges, and compete to see who is the ultimate explorer!
+Ibnbatota is a fun, interactive, and visually stunning web application for you and your friends to track the countries you've visited, earn badges, and compete to see who is the ultimate explorer!
 
 ## 🌟 Features
 

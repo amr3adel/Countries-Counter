@@ -1,4 +1,4 @@
-// Globetrotter - Travel Leaderboard Logic
+// Ibnbatota - Travel Leaderboard Logic
 
 // --- App State ---
 let dbMode = 'local'; // 'local' or 'supabase'
@@ -12,7 +12,7 @@ let state = {
 // --- Definitions ---
 const BADGE_DEFS = [
   { id: 'first_flight', name: 'First Flight 🛫', desc: 'Visit at least 1 country', check: (c, count) => count >= 1 },
-  { id: 'globetrotter', name: 'Globetrotter 🌍', desc: 'Visit at least 10 countries', check: (c, count) => count >= 10 },
+  { id: 'globetrotter', name: 'Ibnbatota 🌍', desc: 'Visit at least 10 countries', check: (c, count) => count >= 10 },
   { id: 'mega_traveler', name: 'Mega Traveler 🚀', desc: 'Visit at least 25 countries', check: (c, count) => count >= 25 },
   { id: 'europe_champ', name: 'Euro Explorer 🇪🇺', desc: 'Visit 5 countries in Europe', check: (c) => countContinent(c, 'Europe') >= 5 },
   { id: 'asia_champ', name: 'Asia Explorer 🌏', desc: 'Visit 5 countries in Asia', check: (c) => countContinent(c, 'Asia') >= 5 },
@@ -311,7 +311,7 @@ async function loadData() {
 }
 
 function fallbackToLocalData() {
-  const localDb = localStorage.getItem('globetrotter_db');
+  const localDb = localStorage.getItem('ibnbatota_db');
   if (localDb) {
     try {
       const parsed = JSON.parse(localDb);
@@ -346,7 +346,7 @@ function saveLocalData() {
     for (const [friendId, set] of Object.entries(state.visited)) {
       visitedObj[friendId] = Array.from(set);
     }
-    localStorage.setItem('globetrotter_db', JSON.stringify({
+    localStorage.setItem('ibnbatota_db', JSON.stringify({
       friends: state.friends,
       visited: visitedObj
     }));

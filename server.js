@@ -43,7 +43,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log('\n======================================================');
-  console.log(`🚀 Globetrotter Travel Leaderboard Server is Active!`);
+  console.log(`🚀 Ibnbatota Travel Leaderboard Server is Active!`);
   console.log(`👉 Open: http://localhost:${PORT}`);
   console.log('======================================================\n');
   console.log('Press Ctrl+C to stop the server.');
