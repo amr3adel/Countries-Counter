@@ -10,8 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Stylesheet -->
   <link rel="stylesheet" href="style.css">
-  <!-- Supabase JS Client CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <!-- Header / Navigation -->
@@ -22,12 +20,6 @@
         <h1>IBNBATOTA</h1>
       </div>
       <p class="tagline">Who is the ultimate explorer? 🌍</p>
-      <div class="header-actions">
-        <span id="supabase-status" class="status-badge status-disconnected">
-          <span class="status-dot"></span> Offline Mode
-        </span>
-        <button id="btn-settings" class="btn btn-secondary">🔌 Supabase Setup</button>
-      </div>
     </div>
   </header>
 
@@ -73,7 +65,6 @@
         </div>
         <div class="card-body map-container">
           <div id="map-wrapper" class="map-wrapper">
-            <!-- We will inject the world-map.svg directly here using fetch and manipulate it in app.js -->
             <div class="loading-spinner">Loading interactive map...</div>
           </div>
           <div id="map-tooltip" class="map-tooltip hidden"></div>
@@ -150,41 +141,6 @@
 
     </div>
   </main>
-
-  <!-- MODAL: Supabase Configuration -->
-  <div id="modal-settings" class="modal-overlay hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>🔌 Supabase Connection Settings</h3>
-        <span class="modal-close" id="modal-settings-close">&times;</span>
-      </div>
-      <div class="modal-body">
-        <p>To enable real-time sync with your friends, create a project on Supabase and enter your details below:</p>
-        
-        <div class="form-group">
-          <label for="sb-url">Supabase Project URL</label>
-          <input type="text" id="sb-url" placeholder="https://your-project.supabase.co">
-        </div>
-        
-        <div class="form-group">
-          <label for="sb-key">Supabase Anon Key</label>
-          <input type="password" id="sb-key" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
-        </div>
-
-        <div class="settings-actions">
-          <button id="btn-save-settings" class="btn btn-primary">Connect & Sync</button>
-          <button id="btn-clear-settings" class="btn btn-secondary">Reset to Local Storage</button>
-        </div>
-        
-        <div class="settings-help">
-          <h4>💡 Quick SQL Setup</h4>
-          <p>Run the SQL script from our repository in your Supabase SQL editor to create the necessary tables.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal friend form removed -->
 
   <!-- Scripts -->
   <script src="countries.js"></script>

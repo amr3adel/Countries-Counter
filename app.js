@@ -1,8 +1,6 @@
-// Ibnbatota - Travel Leaderboard Logic
+// Ibnbatota - Travel Leaderboard Logic (Pure LocalStorage Mode)
 
 // --- App State ---
-let dbMode = 'local'; // 'local' or 'supabase'
-let supabaseClient = null;
 let state = {
   friends: [], // Array of { id, name, avatar }
   visited: {},  // Map of friend_id -> Set of country_codes (lowercase)
@@ -12,7 +10,7 @@ let state = {
 // --- Definitions ---
 const BADGE_DEFS = [
   { id: 'first_flight', name: 'First Flight 🛫', desc: 'Visit at least 1 country', check: (c, count) => count >= 1 },
-  { id: 'globetrotter', name: 'Ibnbatota 🌍', desc: 'Visit at least 10 countries', check: (c, count) => count >= 10 },
+  { id: 'globetrotter', name: 'Globetrotter 🌍', desc: 'Visit at least 10 countries', check: (c, count) => count >= 10 },
   { id: 'mega_traveler', name: 'Mega Traveler 🚀', desc: 'Visit at least 25 countries', check: (c, count) => count >= 25 },
   { id: 'europe_champ', name: 'Euro Explorer 🇪🇺', desc: 'Visit 5 countries in Europe', check: (c) => countContinent(c, 'Europe') >= 5 },
   { id: 'asia_champ', name: 'Asia Explorer 🌏', desc: 'Visit 5 countries in Asia', check: (c) => countContinent(c, 'Asia') >= 5 },
@@ -60,15 +58,6 @@ function countUniqueContinents(visitedCodes) {
 }
 
 // --- DOM Elements ---
-const elStatus = document.getElementById('supabase-status');
-const btnSettings = document.getElementById('btn-settings');
-const modalSettings = document.getElementById('modal-settings');
-const modalSettingsClose = document.getElementById('modal-settings-close');
-const btnSaveSettings = document.getElementById('btn-save-settings');
-const btnClearSettings = document.getElementById('btn-clear-settings');
-const inputSbUrl = document.getElementById('sb-url');
-const inputSbKey = document.getElementById('sb-key');
-
 const addFriendFormInline = document.getElementById('add-friend-form-inline');
 const inputFriendNameInline = document.getElementById('friend-name-inline');
 const selectFriendEmojiInline = document.getElementById('friend-emoji-inline');
@@ -91,34 +80,26 @@ const elActiveProfileHeader = document.getElementById('active-profile-header');
 const elContinentProgressBars = document.getElementById('continent-progress-bars');
 const elBadgesGrid = document.getElementById('badges-grid');
 
-let selectedEmoji = '🧑‍🚀';
 let activeTab = 'all';
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
   populateDatalist();
   setupEventListeners();
-  loadSupabaseSettings();
-  await initDatabase();
+  loadData();
   await loadWorldMap();
   renderApp();
 });
 
 // --- Event Listeners Setup ---
 function setupEventListeners() {
-  // Modals
-  btnSettings.addEventListener('click', () => showModal(modalSettings));
-  modalSettingsClose.addEventListener('click', () => hideModal(modalSettings));
-  btnSaveSettings.addEventListener('click', saveSettings);
-  btnClearSettings.addEventListener('click', clearSettings);
-
   // Add Friend Form (Inline)
   addFriendFormInline.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = inputFriendNameInline.value.trim();
     const emoji = selectFriendEmojiInline.value;
     if (name) {
-      await createFriend(name, emoji);
+      createFriend(name, emoji);
       addFriendFormInline.reset();
     }
   });
@@ -138,7 +119,7 @@ function setupEventListeners() {
     updateActiveFriendUI();
   });
 
-  // Search Countries
+  // Search/Filter Countries List
   inputSearchCountries.addEventListener('input', renderCountriesGrid);
 
   // Continent Tabs
@@ -152,14 +133,6 @@ function setupEventListeners() {
   });
 }
 
-function showModal(modal) {
-  modal.classList.remove('hidden');
-}
-
-function hideModal(modal) {
-  modal.classList.add('hidden');
-}
-
 function populateDatalist() {
   datalistCountries.innerHTML = '';
   for (const [code, info] of Object.entries(window.countriesData)) {
@@ -169,150 +142,8 @@ function populateDatalist() {
   }
 }
 
-async function handleQuickAdd() {
-  if (!state.activeFriendId) {
-    alert('Please enter your name or select an explorer first!');
-    return;
-  }
-  const typedName = inputQuickAddCountry.value.trim().toLowerCase();
-  if (!typedName) return;
-
-  // Try to find a matching country by name
-  let matchedCode = null;
-  for (const [code, info] of Object.entries(window.countriesData)) {
-    if (info.name.toLowerCase() === typedName) {
-      matchedCode = code;
-      break;
-    }
-  }
-
-  // Fallback: search for partial match if exact match not found
-  if (!matchedCode) {
-    for (const [code, info] of Object.entries(window.countriesData)) {
-      if (info.name.toLowerCase().includes(typedName)) {
-        matchedCode = code;
-        break;
-      }
-    }
-  }
-
-  if (matchedCode) {
-    const currentVisits = state.visited[state.activeFriendId] || new Set();
-    if (currentVisits.has(matchedCode)) {
-      alert(`You've already visited ${window.countriesData[matchedCode].name}!`);
-    } else {
-      const success = await toggleVisitedCountry(state.activeFriendId, matchedCode, true);
-      if (success) {
-        // Clear input
-        inputQuickAddCountry.value = '';
-        // Synchronize checklist if visible
-        const checkbox = document.getElementById(`chk-${matchedCode}`);
-        if (checkbox) {
-          checkbox.checked = true;
-          const item = checkbox.closest('.country-item');
-          if (item) item.classList.add('checked');
-        }
-      }
-    }
-  } else {
-    alert(`Could not find a country matching "${inputQuickAddCountry.value}"`);
-  }
-}
-
-// --- Database & Local Storage Functions ---
-const DEFAULT_SB_URL = 'https://emiqdagisbjyafwnwjhu.supabase.co';
-const DEFAULT_SB_KEY = 'sb_publishable_Ct3NnRd6JgxszTHB4t7-xw_jswQmkZc';
-
-function loadSupabaseSettings() {
-  const url = localStorage.getItem('sb_url') || DEFAULT_SB_URL;
-  const key = localStorage.getItem('sb_key') || DEFAULT_SB_KEY;
-  inputSbUrl.value = url;
-  inputSbKey.value = key;
-}
-
-async function initDatabase() {
-  const isDisabled = localStorage.getItem('sb_disabled') === 'true';
-  const url = localStorage.getItem('sb_url') || (isDisabled ? '' : DEFAULT_SB_URL);
-  const key = localStorage.getItem('sb_key') || (isDisabled ? '' : DEFAULT_SB_KEY);
-
-  if (url && key) {
-    try {
-      // Initialize Supabase Client
-      supabaseClient = supabase.createClient(url, key);
-      // Try to query a table to check if connection is active
-      const { data, error } = await supabaseClient.from('friends').select('id').limit(1);
-      if (error) throw error;
-
-      dbMode = 'supabase';
-      elStatus.className = 'status-badge status-connected';
-      elStatus.innerHTML = '<span class="status-dot"></span> Supabase Connected';
-      console.log('Supabase initialized successfully.');
-    } catch (err) {
-      console.error('Supabase initialization failed, falling back to local storage:', err);
-      dbMode = 'local';
-      elStatus.className = 'status-badge status-disconnected';
-      elStatus.innerHTML = '<span class="status-dot"></span> Connection Failed (Local Mode)';
-    }
-  } else {
-    dbMode = 'local';
-    elStatus.className = 'status-badge status-disconnected';
-    elStatus.innerHTML = '<span class="status-dot"></span> Offline Mode';
-  }
-
-  await loadData();
-}
-
-async function loadData() {
-  if (dbMode === 'supabase') {
-    try {
-      // Load friends
-      const { data: friends, error: fError } = await supabaseClient
-        .from('friends')
-        .select('*')
-        .order('name');
-      
-      if (fError) throw fError;
-      state.friends = friends || [];
-
-      // Load visited countries
-      const { data: visited, error: vError } = await supabaseClient
-        .from('visited_countries')
-        .select('*');
-      
-      if (vError) throw vError;
-
-      // Group visited countries by friend_id
-      state.visited = {};
-      state.friends.forEach(f => {
-        state.visited[f.id] = new Set();
-      });
-      
-      visited.forEach(record => {
-        if (!state.visited[record.friend_id]) {
-          state.visited[record.friend_id] = new Set();
-        }
-        state.visited[record.friend_id].add(record.country_code.toLowerCase());
-      });
-
-    } catch (err) {
-      console.error('Error fetching Supabase data, loading local storage:', err);
-      fallbackToLocalData();
-    }
-  } else {
-    fallbackToLocalData();
-  }
-
-  // Set active explorer
-  if (state.friends.length > 0) {
-    if (!state.activeFriendId || !state.friends.some(f => f.id === state.activeFriendId)) {
-      state.activeFriendId = state.friends[0].id;
-    }
-  } else {
-    state.activeFriendId = null;
-  }
-}
-
-function fallbackToLocalData() {
+// --- Local Database Functions ---
+function loadData() {
   const localDb = localStorage.getItem('ibnbatota_db');
   if (localDb) {
     try {
@@ -333,6 +164,15 @@ function fallbackToLocalData() {
   } else {
     initEmptyState();
   }
+
+  // Set active explorer
+  if (state.friends.length > 0) {
+    if (!state.activeFriendId || !state.friends.some(f => f.id === state.activeFriendId)) {
+      state.activeFriendId = state.friends[0].id;
+    }
+  } else {
+    state.activeFriendId = null;
+  }
 }
 
 function initEmptyState() {
@@ -342,140 +182,88 @@ function initEmptyState() {
 }
 
 function saveLocalData() {
-  if (dbMode === 'local') {
-    // Map Sets to Arrays for JSON serialization
-    const visitedObj = {};
-    for (const [friendId, set] of Object.entries(state.visited)) {
-      visitedObj[friendId] = Array.from(set);
-    }
-    localStorage.setItem('ibnbatota_db', JSON.stringify({
-      friends: state.friends,
-      visited: visitedObj
-    }));
+  const visitedObj = {};
+  for (const [friendId, set] of Object.entries(state.visited)) {
+    visitedObj[friendId] = Array.from(set);
   }
+  localStorage.setItem('ibnbatota_db', JSON.stringify({
+    friends: state.friends,
+    visited: visitedObj
+  }));
 }
 
-// --- CRUD Actions ---
-async function createFriend(name, avatar) {
+// --- Actions ---
+function createFriend(name, avatar) {
   const newFriend = {
-    id: dbMode === 'supabase' ? undefined : generateUUID(),
+    id: generateUUID(),
     name,
     avatar
   };
 
-  if (dbMode === 'supabase') {
-    try {
-      const { data, error } = await supabaseClient
-        .from('friends')
-        .insert([newFriend])
-        .select();
-
-      if (error) throw error;
-      if (data && data[0]) {
-        state.friends.push(data[0]);
-        state.visited[data[0].id] = new Set();
-        state.activeFriendId = data[0].id;
-      }
-    } catch (err) {
-      alert('Failed to save friend to Supabase: ' + err.message);
-      return;
-    }
-  } else {
-    newFriend.id = generateUUID();
-    state.friends.push(newFriend);
-    state.visited[newFriend.id] = new Set();
-    state.activeFriendId = newFriend.id;
-    saveLocalData();
-  }
-
+  state.friends.push(newFriend);
+  state.visited[newFriend.id] = new Set();
+  state.activeFriendId = newFriend.id;
+  
+  saveLocalData();
   renderApp();
 }
 
-async function toggleVisitedCountry(friendId, countryCode, visitedState) {
+function toggleVisitedCountry(friendId, countryCode, visitedState) {
   countryCode = countryCode.toLowerCase();
   
   if (!state.visited[friendId]) {
     state.visited[friendId] = new Set();
   }
 
-  if (dbMode === 'supabase') {
-    try {
-      if (visitedState) {
-        const { error } = await supabaseClient
-          .from('visited_countries')
-          .insert([{ friend_id: friendId, country_code: countryCode }]);
-        
-        if (error && error.code !== '23505') throw error; // Ignore duplicate key errors
-        state.visited[friendId].add(countryCode);
-      } else {
-        const { error } = await supabaseClient
-          .from('visited_countries')
-          .delete()
-          .match({ friend_id: friendId, country_code: countryCode });
-        
-        if (error) throw error;
-        state.visited[friendId].delete(countryCode);
-      }
-    } catch (err) {
-      console.error('Supabase country toggle failed:', err);
-      alert('Failed to sync country visit: ' + err.message);
-      return false;
-    }
+  if (visitedState) {
+    state.visited[friendId].add(countryCode);
   } else {
-    if (visitedState) {
-      state.visited[friendId].add(countryCode);
-    } else {
-      state.visited[friendId].delete(countryCode);
-    }
-    saveLocalData();
+    state.visited[friendId].delete(countryCode);
   }
-
-  // Update UI components dynamically
-  renderLeaderboard();
-  renderActiveProfile();
-  updateMapHighlight();
-  return true;
+  
+  saveLocalData();
+  renderApp();
 }
 
-// --- Supabase Config Actions ---
-async function saveSettings() {
-  const url = inputSbUrl.value.trim();
-  const key = inputSbKey.value.trim();
-
-  if (!url || !key) {
-    alert('Please fill out both Supabase URL and Anon Key.');
+async function handleQuickAdd() {
+  if (!state.activeFriendId) {
+    alert('Please enter your name or select an explorer first!');
     return;
   }
+  const typedName = inputQuickAddCountry.value.trim().toLowerCase();
+  if (!typedName) return;
 
-  localStorage.setItem('sb_url', url);
-  localStorage.setItem('sb_key', key);
-  localStorage.removeItem('sb_disabled');
-  
-  hideModal(modalSettings);
-  
-  // Reload app with new settings
-  elStatus.className = 'status-badge status-disconnected';
-  elStatus.innerHTML = '<span class="status-dot"></span> Connecting...';
-  
-  await initDatabase();
-  renderApp();
-}
+  // Try to find a matching country by name (exact)
+  let matchedCode = null;
+  for (const [code, info] of Object.entries(window.countriesData)) {
+    if (info.name.toLowerCase() === typedName) {
+      matchedCode = code;
+      break;
+    }
+  }
 
-async function clearSettings() {
-  localStorage.removeItem('sb_url');
-  localStorage.removeItem('sb_key');
-  localStorage.setItem('sb_disabled', 'true');
-  inputSbUrl.value = '';
-  inputSbKey.value = '';
-  
-  hideModal(modalSettings);
-  
-  dbMode = 'local';
-  elStatus.className = 'status-badge status-disconnected';
-  elStatus.innerHTML = '<span class="status-dot"></span> Offline Mode';
-  
-  await loadData();
-  renderApp();
+  // Fallback: search for partial match
+  if (!matchedCode) {
+    for (const [code, info] of Object.entries(window.countriesData)) {
+      if (info.name.toLowerCase().includes(typedName)) {
+        matchedCode = code;
+        break;
+      }
+    }
+  }
+
+  if (matchedCode) {
+    const currentVisits = state.visited[state.activeFriendId] || new Set();
+    if (currentVisits.has(matchedCode)) {
+      alert(`You've already visited ${window.countriesData[matchedCode].name}!`);
+    } else {
+      toggleVisitedCountry(state.activeFriendId, matchedCode, true);
+      // Clear text field
+      inputQuickAddCountry.value = '';
+    }
+  } else {
+    alert(`Could not find a country matching "${inputQuickAddCountry.value}"`);
+  }
 }
 
 // --- Map Loader ---
@@ -485,16 +273,13 @@ async function loadWorldMap() {
     if (!response.ok) throw new Error('Network error loading map');
     let svgText = await response.text();
     
-    // Inject the SVG directly into the wrapper
     elMapWrapper.innerHTML = svgText;
     
-    // Configure paths inside SVG
     const svgElement = elMapWrapper.querySelector('svg');
     if (svgElement) {
       svgElement.setAttribute('width', '100%');
       svgElement.setAttribute('height', '100%');
       
-      // Inject gradient definition for visited styling
       const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
       defs.innerHTML = `
         <linearGradient id="visited-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -504,14 +289,12 @@ async function loadWorldMap() {
       `;
       svgElement.insertBefore(defs, svgElement.firstChild);
 
-      // Find all paths and groups representing countries
       const paths = svgElement.querySelectorAll('path, g');
       paths.forEach(el => {
         const id = el.getAttribute('id');
         if (id && id !== 'world-map' && id !== 'ocean' && !id.startsWith('path')) {
           el.classList.add('country-path');
           
-          // Setup interaction events
           el.addEventListener('click', () => handleMapCountryClick(id));
           el.addEventListener('mouseenter', (e) => showMapTooltip(e, id));
           el.addEventListener('mousemove', (e) => moveMapTooltip(e));
@@ -524,29 +307,16 @@ async function loadWorldMap() {
   }
 }
 
-// Map interactions
-async function handleMapCountryClick(countryCode) {
+function handleMapCountryClick(countryCode) {
   if (!state.activeFriendId) {
-    alert('Please add or select an explorer first!');
+    alert('Please enter your name or select an explorer first!');
     return;
   }
   
   const currentVisits = state.visited[state.activeFriendId] || new Set();
   const isVisited = currentVisits.has(countryCode.toLowerCase());
   
-  const success = await toggleVisitedCountry(state.activeFriendId, countryCode, !isVisited);
-  if (success) {
-    // Sync checklist if that country is rendered in current checklist view
-    const checkbox = document.getElementById(`chk-${countryCode}`);
-    if (checkbox) {
-      checkbox.checked = !isVisited;
-      const item = checkbox.closest('.country-item');
-      if (item) {
-        if (!isVisited) item.classList.add('checked');
-        else item.classList.remove('checked');
-      }
-    }
-  }
+  toggleVisitedCountry(state.activeFriendId, countryCode, !isVisited);
 }
 
 function showMapTooltip(e, countryCode) {
@@ -554,7 +324,6 @@ function showMapTooltip(e, countryCode) {
   const country = window.countriesData[normalizedCode];
   const name = country ? country.name : countryCode.toUpperCase();
   
-  // Find who visited this country
   const visitors = [];
   state.friends.forEach(f => {
     if (state.visited[f.id] && state.visited[f.id].has(normalizedCode)) {
@@ -578,11 +347,9 @@ function moveMapTooltip(e) {
   const mapRect = elMapWrapper.getBoundingClientRect();
   const tooltipRect = elMapTooltip.getBoundingClientRect();
   
-  // Calculate relative position within the container
   let left = e.clientX - mapRect.left + 15;
   let top = e.clientY - mapRect.top + 15;
   
-  // Collision detection (prevent tooltip from drawing outside map view)
   if (left + tooltipRect.width > mapRect.width) {
     left = e.clientX - mapRect.left - tooltipRect.width - 15;
   }
@@ -598,11 +365,9 @@ function hideMapTooltip() {
   elMapTooltip.classList.add('hidden');
 }
 
-// Update Map country highlights based on active friend
 function updateMapHighlight() {
   const activeVisits = state.activeFriendId ? (state.visited[state.activeFriendId] || new Set()) : new Set();
   
-  // Reset all map paths
   const paths = elMapWrapper.querySelectorAll('.country-path');
   paths.forEach(el => {
     const id = el.getAttribute('id').toLowerCase();
@@ -614,7 +379,6 @@ function updateMapHighlight() {
     if (activeVisits.has(id)) {
       el.classList.add('visited');
     } else {
-      // Check if visited by others
       let otherVisitorCount = 0;
       state.friends.forEach(f => {
         if (f.id !== state.activeFriendId && state.visited[f.id] && state.visited[f.id].has(id)) {
@@ -629,7 +393,6 @@ function updateMapHighlight() {
     }
   });
 
-  // Update country stat total
   elMapCountryCount.textContent = `${activeVisits.size}/180 Countries Explored`;
 }
 
@@ -643,9 +406,7 @@ function renderApp() {
 }
 
 function renderFriendDropdown() {
-  // Save current selection
   const prevSelected = selectFriend.value;
-
   selectFriend.innerHTML = '';
   
   if (state.friends.length === 0) {
@@ -660,7 +421,6 @@ function renderFriendDropdown() {
     selectFriend.appendChild(opt);
   });
 
-  // Restore selection
   if (state.friends.some(f => f.id === prevSelected)) {
     selectFriend.value = prevSelected;
     state.activeFriendId = prevSelected;
@@ -671,10 +431,8 @@ function renderFriendDropdown() {
 }
 
 function updateActiveFriendUI() {
-  // Update dropdown select
   selectFriend.value = state.activeFriendId;
   
-  // Highlight in leaderboard list
   const items = elLeaderboardList.querySelectorAll('.leaderboard-item');
   items.forEach(el => {
     if (el.getAttribute('data-id') === state.activeFriendId) {
@@ -684,21 +442,7 @@ function updateActiveFriendUI() {
     }
   });
 
-  // Sync checkboxes
-  const activeVisits = state.visited[state.activeFriendId] || new Set();
-  const checkboxes = elCountryListGrid.querySelectorAll('.country-checkbox');
-  checkboxes.forEach(chk => {
-    const code = chk.getAttribute('id').replace('chk-', '');
-    const isChecked = activeVisits.has(code);
-    chk.checked = isChecked;
-    
-    const item = chk.closest('.country-item');
-    if (item) {
-      if (isChecked) item.classList.add('checked');
-      else item.classList.remove('checked');
-    }
-  });
-
+  renderCountriesGrid();
   renderActiveProfile();
   updateMapHighlight();
 }
@@ -711,19 +455,17 @@ function renderLeaderboard() {
       <div style="text-align:center;color:var(--color-text-muted);padding:2rem 1rem;">
         <span style="font-size:3rem;display:block;margin-bottom:1rem;">⛺</span>
         <h3>No explorers in the group yet.</h3>
-        <p style="font-size:0.85rem;margin-top:0.5rem;">Click the "+ Add Friend" button above to get started!</p>
+        <p style="font-size:0.85rem;margin-top:0.5rem;">Type your name above to join the board!</p>
       </div>
     `;
     return;
   }
 
-  // Calculate scores
   const leaderboardData = state.friends.map(f => {
     const visits = state.visited[f.id] || new Set();
     const count = visits.size;
     const pct = ((count / 180) * 100).toFixed(1);
     
-    // Calculate badges
     let badgeCount = 0;
     BADGE_DEFS.forEach(badge => {
       if (badge.check(visits, count)) badgeCount++;
@@ -737,13 +479,11 @@ function renderLeaderboard() {
     };
   });
 
-  // Sort by count descending, then name
   leaderboardData.sort((a, b) => {
     if (b.count !== a.count) return b.count - a.count;
     return a.name.localeCompare(b.name);
   });
 
-  // Render list
   leaderboardData.forEach((item, index) => {
     const rank = index + 1;
     let rankDisplay = `#${rank}`;
@@ -769,7 +509,6 @@ function renderLeaderboard() {
       </div>
     `;
 
-    // Click leaderboard row to make active
     div.addEventListener('click', () => {
       state.activeFriendId = item.id;
       renderFriendDropdown();
@@ -789,7 +528,6 @@ function renderCountriesGrid() {
   let count = 0;
 
   for (const [code, info] of Object.entries(window.countriesData)) {
-    // Filters
     if (activeTab !== 'all' && info.continent !== activeTab) continue;
     if (searchVal && !info.name.toLowerCase().includes(searchVal)) continue;
 
@@ -803,23 +541,14 @@ function renderCountriesGrid() {
       <span class="country-name" title="${info.name}">${info.name}</span>
     `;
 
-    // Add Toggle Listener to checkbox
     const chk = label.querySelector('input');
-    chk.addEventListener('change', async (e) => {
+    chk.addEventListener('change', (e) => {
       if (!state.activeFriendId) {
         e.target.checked = false;
-        alert('Please add or select a friend first!');
+        alert('Please enter your name or select an explorer first!');
         return;
       }
-      
-      const success = await toggleVisitedCountry(state.activeFriendId, code, e.target.checked);
-      if (success) {
-        if (e.target.checked) label.classList.add('checked');
-        else label.classList.remove('checked');
-      } else {
-        // Revert UI on failure
-        e.target.checked = !e.target.checked;
-      }
+      toggleVisitedCountry(state.activeFriendId, code, e.target.checked);
     });
 
     elCountryListGrid.appendChild(label);
@@ -840,7 +569,7 @@ function renderActiveProfile() {
   elBadgesGrid.innerHTML = '';
 
   if (!state.activeFriendId) {
-    elActiveProfileHeader.innerHTML = '<p style="color:var(--color-text-muted)">No active explorer. Add a friend to start tracking stats!</p>';
+    elActiveProfileHeader.innerHTML = '<p style="color:var(--color-text-muted)">No active explorer. Enter your name above to start tracking!</p>';
     return;
   }
 
@@ -851,7 +580,6 @@ function renderActiveProfile() {
   const totalVisited = visits.size;
   const worldPct = ((totalVisited / 180) * 100).toFixed(1);
 
-  // Profile Header
   elActiveProfileHeader.innerHTML = `
     <div class="profile-header-avatar">${activeFriend.avatar}</div>
     <div class="profile-header-info">
@@ -860,9 +588,8 @@ function renderActiveProfile() {
     </div>
   `;
 
-  // Continent Progress Bars
   const continents = ['Africa', 'Americas', 'Asia', 'Europe', 'Oceania'];
-  const continentTotals = { Africa: 52, Americas: 34, Asia: 43, Europe: 43, Oceania: 8 }; // Matches our countries.js entries roughly
+  const continentTotals = { Africa: 52, Americas: 34, Asia: 43, Europe: 43, Oceania: 8 };
 
   continents.forEach(cont => {
     const visitedInCont = countContinent(visits, cont);
@@ -883,7 +610,6 @@ function renderActiveProfile() {
     elContinentProgressBars.appendChild(div);
   });
 
-  // Badges Grid
   BADGE_DEFS.forEach(badge => {
     const isUnlocked = badge.check(visits, totalVisited);
 
@@ -891,7 +617,6 @@ function renderActiveProfile() {
     div.className = `badge-item ${isUnlocked ? 'unlocked' : ''}`;
     div.setAttribute('data-desc', badge.desc);
     
-    // Find icon
     let icon = '🎖️';
     if (badge.id === 'first_flight') icon = '🛫';
     else if (badge.id === 'globetrotter') icon = '🌍';
