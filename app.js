@@ -93,6 +93,7 @@ const elBadgesGrid = document.getElementById('badges-grid');
 
 let selectedEmoji = '🧑‍🚀';
 let activeTab = 'all';
+let confirmCallback = null;
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -111,6 +112,24 @@ function setupEventListeners() {
   if (modalSettingsClose) modalSettingsClose.addEventListener('click', () => hideModal(modalSettings));
   if (btnSaveSettings) btnSaveSettings.addEventListener('click', saveSettings);
   if (btnClearSettings) btnClearSettings.addEventListener('click', clearSettings);
+
+  // Confirm Modal bindings
+  const modalConfirm = document.getElementById('modal-confirm-visit');
+  const modalConfirmClose = document.getElementById('modal-confirm-close');
+  const btnConfirmCancel = document.getElementById('btn-confirm-cancel');
+  const btnConfirmSave = document.getElementById('btn-confirm-save');
+
+  if (modalConfirmClose) modalConfirmClose.addEventListener('click', () => hideModal(modalConfirm));
+  if (btnConfirmCancel) btnConfirmCancel.addEventListener('click', () => hideModal(modalConfirm));
+  if (btnConfirmSave) {
+    btnConfirmSave.addEventListener('click', () => {
+      if (confirmCallback) {
+        confirmCallback();
+        confirmCallback = null;
+      }
+      hideModal(modalConfirm);
+    });
+  }
 
   // Add Friend Form (Inline)
   addFriendFormInline.addEventListener('submit', async (e) => {
@@ -215,18 +234,20 @@ async function handleQuickAdd() {
     if (currentVisits.has(matchedCode)) {
       alert(`You've already visited ${window.countriesData[matchedCode].name}!`);
     } else {
-      const success = await toggleVisitedCountry(state.activeFriendId, matchedCode, true);
-      if (success) {
-        // Clear input
-        inputQuickAddCountry.value = '';
-        // Synchronize checklist if visible
-        const checkbox = document.getElementById(`chk-${matchedCode}`);
-        if (checkbox) {
-          checkbox.checked = true;
-          const item = checkbox.closest('.country-item');
-          if (item) item.classList.add('checked');
+      const countryName = window.countriesData[matchedCode].name;
+      const explorer = state.friends.find(f => f.id === state.activeFriendId);
+      const explorerName = explorer ? explorer.name : 'Active Explorer';
+      const explorerAvatar = explorer ? explorer.avatar : '🧑‍🚀';
+
+      requestConfirmation(
+        '🧭 Confirm Visit',
+        `Do you want to log <strong>${countryName}</strong> for <strong>${explorerName}</strong>?`,
+        explorerAvatar,
+        () => {
+          toggleVisitedCountry(state.activeFriendId, matchedCode, true);
+          inputQuickAddCountry.value = '';
         }
-      }
+      );
     }
   } else {
     alert(`Could not find a country matching "${inputQuickAddCountry.value}"`);
@@ -545,26 +566,30 @@ async function loadWorldMap() {
 // Map interactions
 async function handleMapCountryClick(countryCode) {
   if (!state.activeFriendId) {
-    alert('Please add or select an explorer first!');
+    alert('Please enter your name or select an explorer first!');
     return;
   }
   
   const currentVisits = state.visited[state.activeFriendId] || new Set();
   const isVisited = currentVisits.has(countryCode.toLowerCase());
+  const isChecking = !isVisited;
   
-  const success = await toggleVisitedCountry(state.activeFriendId, countryCode, !isVisited);
-  if (success) {
-    // Sync checklist if that country is rendered in current checklist view
-    const checkbox = document.getElementById(`chk-${countryCode}`);
-    if (checkbox) {
-      checkbox.checked = !isVisited;
-      const item = checkbox.closest('.country-item');
-      if (item) {
-        if (!isVisited) item.classList.add('checked');
-        else item.classList.remove('checked');
-      }
-    }
-  }
+  const normalizedCode = countryCode.toLowerCase();
+  const country = window.countriesData[normalizedCode];
+  const countryName = country ? country.name : countryCode.toUpperCase();
+  
+  const explorer = state.friends.find(f => f.id === state.activeFriendId);
+  const explorerName = explorer ? explorer.name : 'Active Explorer';
+  const explorerAvatar = explorer ? explorer.avatar : '🧑‍🚀';
+
+  const title = isChecking ? '🧭 Confirm Visit' : '⚠️ Remove Visit';
+  const message = isChecking
+    ? `Do you want to log <strong>${countryName}</strong> for <strong>${explorerName}</strong>?`
+    : `Do you want to remove <strong>${countryName}</strong> from <strong>${explorerName}</strong>'s profile?`;
+
+  requestConfirmation(title, message, explorerAvatar, () => {
+    toggleVisitedCountry(state.activeFriendId, countryCode, isChecking);
+  });
 }
 
 function showMapTooltip(e, countryCode) {
@@ -820,21 +845,30 @@ function renderCountriesGrid() {
 
     // Add Toggle Listener to checkbox
     const chk = label.querySelector('input');
-    chk.addEventListener('change', async (e) => {
+    chk.addEventListener('change', (e) => {
       if (!state.activeFriendId) {
         e.target.checked = false;
-        alert('Please add or select a friend first!');
+        alert('Please enter your name or select an explorer first!');
         return;
       }
       
-      const success = await toggleVisitedCountry(state.activeFriendId, code, e.target.checked);
-      if (success) {
-        if (e.target.checked) label.classList.add('checked');
-        else label.classList.remove('checked');
-      } else {
-        // Revert UI on failure
-        e.target.checked = !e.target.checked;
-      }
+      const isChecking = e.target.checked;
+      const countryName = info.name;
+      const explorer = state.friends.find(f => f.id === state.activeFriendId);
+      const explorerName = explorer ? explorer.name : 'Active Explorer';
+      const explorerAvatar = explorer ? explorer.avatar : '🧑‍🚀';
+
+      // Revert change temporarily until confirmed
+      e.target.checked = !isChecking;
+
+      const title = isChecking ? '🧭 Confirm Visit' : '⚠️ Remove Visit';
+      const message = isChecking
+        ? `Do you want to log <strong>${countryName}</strong> for <strong>${explorerName}</strong>?`
+        : `Do you want to remove <strong>${countryName}</strong> from <strong>${explorerName}</strong>'s profile?`;
+
+      requestConfirmation(title, message, explorerAvatar, () => {
+        toggleVisitedCountry(state.activeFriendId, code, isChecking);
+      });
     });
 
     elCountryListGrid.appendChild(label);
@@ -933,4 +967,27 @@ function generateUUID() {
     var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
+}
+
+function requestConfirmation(title, message, avatar, onConfirm) {
+  const modal = document.getElementById('modal-confirm-visit');
+  const modalTitle = document.getElementById('confirm-modal-title');
+  const promptText = document.getElementById('confirm-prompt-text');
+  const avatarBadge = document.getElementById('confirm-avatar-badge');
+  const btnSave = document.getElementById('btn-confirm-save');
+
+  modalTitle.textContent = title;
+  promptText.innerHTML = message;
+  avatarBadge.textContent = avatar || '🧭';
+  
+  if (title.toLowerCase().includes('remove')) {
+    btnSave.className = 'btn btn-danger';
+    btnSave.textContent = 'Yes, Remove';
+  } else {
+    btnSave.className = 'btn btn-primary';
+    btnSave.textContent = 'Yes, Confirm';
+  }
+
+  confirmCallback = onConfirm;
+  showModal(modal);
 }

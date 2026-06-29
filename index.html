@@ -183,7 +183,25 @@
     </div>
   </div>
 
-  <!-- Modal friend form removed -->
+  <!-- MODAL: Confirm Visit -->
+  <div id="modal-confirm-visit" class="modal-overlay hidden">
+    <div class="modal-content confirm-modal-content">
+      <div class="modal-header">
+        <h3 id="confirm-modal-title">🧭 Confirm Action</h3>
+        <span class="modal-close" id="modal-confirm-close">&times;</span>
+      </div>
+      <div class="modal-body text-center">
+        <div id="confirm-avatar-badge" style="font-size: 3rem; margin-bottom: 1rem;">🧑‍🚀</div>
+        <p id="confirm-prompt-text" style="font-size: 1.1rem; line-height: 1.5; margin-bottom: 1.5rem;">
+          Do you want to log <strong>Egypt</strong> for <strong>amr</strong>?
+        </p>
+        <div class="settings-actions" style="margin-top: 1rem;">
+          <button id="btn-confirm-cancel" class="btn btn-secondary">Cancel</button>
+          <button id="btn-confirm-save" class="btn btn-primary">Yes, Confirm</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Scripts -->
   <script src="countries.js"></script>
