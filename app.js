@@ -69,12 +69,13 @@ const btnClearSettings = document.getElementById('btn-clear-settings');
 const inputSbUrl = document.getElementById('sb-url');
 const inputSbKey = document.getElementById('sb-key');
 
-const btnAddFriend = document.getElementById('btn-add-friend');
-const modalFriend = document.getElementById('modal-friend');
-const modalFriendClose = document.getElementById('modal-friend-close');
-const addFriendForm = document.getElementById('add-friend-form');
-const inputFriendName = document.getElementById('friend-name');
-const avatarOptions = document.querySelectorAll('.avatar-option');
+const addFriendFormInline = document.getElementById('add-friend-form-inline');
+const inputFriendNameInline = document.getElementById('friend-name-inline');
+const selectFriendEmojiInline = document.getElementById('friend-emoji-inline');
+
+const inputQuickAddCountry = document.getElementById('quick-add-country');
+const btnQuickAdd = document.getElementById('btn-quick-add');
+const datalistCountries = document.getElementById('countries-datalist');
 
 const elLeaderboardList = document.getElementById('leaderboard-list');
 const elMapWrapper = document.getElementById('map-wrapper');
@@ -95,6 +96,7 @@ let activeTab = 'all';
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
+  populateDatalist();
   setupEventListeners();
   loadSupabaseSettings();
   await initDatabase();
@@ -110,29 +112,23 @@ function setupEventListeners() {
   btnSaveSettings.addEventListener('click', saveSettings);
   btnClearSettings.addEventListener('click', clearSettings);
 
-  btnAddFriend.addEventListener('click', () => showModal(modalFriend));
-  modalFriendClose.addEventListener('click', () => hideModal(modalFriend));
-  
-  // Avatar Selection
-  avatarOptions.forEach(opt => {
-    opt.addEventListener('click', () => {
-      avatarOptions.forEach(o => o.classList.remove('selected'));
-      opt.classList.add('selected');
-      selectedEmoji = opt.getAttribute('data-emoji');
-    });
+  // Add Friend Form (Inline)
+  addFriendFormInline.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = inputFriendNameInline.value.trim();
+    const emoji = selectFriendEmojiInline.value;
+    if (name) {
+      await createFriend(name, emoji);
+      addFriendFormInline.reset();
+    }
   });
 
-  // Add Friend Form
-  addFriendForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = inputFriendName.value.trim();
-    if (name) {
-      await createFriend(name, selectedEmoji);
-      hideModal(modalFriend);
-      addFriendForm.reset();
-      selectedEmoji = '🧑‍🚀';
-      avatarOptions.forEach(o => o.classList.remove('selected'));
-      avatarOptions[0].classList.add('selected');
+  // Quick Add Country
+  btnQuickAdd.addEventListener('click', handleQuickAdd);
+  inputQuickAddCountry.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleQuickAdd();
     }
   });
 
@@ -162,6 +158,65 @@ function showModal(modal) {
 
 function hideModal(modal) {
   modal.classList.add('hidden');
+}
+
+function populateDatalist() {
+  datalistCountries.innerHTML = '';
+  for (const [code, info] of Object.entries(window.countriesData)) {
+    const opt = document.createElement('option');
+    opt.value = info.name;
+    datalistCountries.appendChild(opt);
+  }
+}
+
+async function handleQuickAdd() {
+  if (!state.activeFriendId) {
+    alert('Please enter your name or select an explorer first!');
+    return;
+  }
+  const typedName = inputQuickAddCountry.value.trim().toLowerCase();
+  if (!typedName) return;
+
+  // Try to find a matching country by name
+  let matchedCode = null;
+  for (const [code, info] of Object.entries(window.countriesData)) {
+    if (info.name.toLowerCase() === typedName) {
+      matchedCode = code;
+      break;
+    }
+  }
+
+  // Fallback: search for partial match if exact match not found
+  if (!matchedCode) {
+    for (const [code, info] of Object.entries(window.countriesData)) {
+      if (info.name.toLowerCase().includes(typedName)) {
+        matchedCode = code;
+        break;
+      }
+    }
+  }
+
+  if (matchedCode) {
+    const currentVisits = state.visited[state.activeFriendId] || new Set();
+    if (currentVisits.has(matchedCode)) {
+      alert(`You've already visited ${window.countriesData[matchedCode].name}!`);
+    } else {
+      const success = await toggleVisitedCountry(state.activeFriendId, matchedCode, true);
+      if (success) {
+        // Clear input
+        inputQuickAddCountry.value = '';
+        // Synchronize checklist if visible
+        const checkbox = document.getElementById(`chk-${matchedCode}`);
+        if (checkbox) {
+          checkbox.checked = true;
+          const item = checkbox.closest('.country-item');
+          if (item) item.classList.add('checked');
+        }
+      }
+    }
+  } else {
+    alert(`Could not find a country matching "${inputQuickAddCountry.value}"`);
+  }
 }
 
 // --- Database & Local Storage Functions ---

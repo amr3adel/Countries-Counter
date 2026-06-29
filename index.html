@@ -39,9 +39,23 @@
       <section class="card leaderboard-card">
         <div class="card-header">
           <h2>🏆 Explorer Leaderboard</h2>
-          <button id="btn-add-friend" class="btn btn-primary btn-sm">+ Add Friend</button>
         </div>
         <div class="card-body">
+          <form id="add-friend-form-inline" class="add-friend-form-inline">
+            <input type="text" id="friend-name-inline" placeholder="👤 Enter your name..." required>
+            <select id="friend-emoji-inline" class="emoji-select" title="Choose avatar">
+              <option value="🧑‍🚀">🧑‍🚀</option>
+              <option value="🤠">🤠</option>
+              <option value="🏕️">🏕️</option>
+              <option value="🎒">🎒</option>
+              <option value="✈️">✈️</option>
+              <option value="🏄">🏄</option>
+              <option value="🍕">🍕</option>
+              <option value="🦁">🦁</option>
+              <option value="🐼">🐼</option>
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">Join</button>
+          </form>
           <div id="leaderboard-list" class="leaderboard-list">
             <!-- Dynamic Leaderboard Items go here -->
             <div class="loading-spinner">Loading explorer ranks...</div>
@@ -83,8 +97,17 @@
           </div>
         </div>
         <div class="card-body">
+          <!-- Quick Add Section -->
+          <div class="quick-add-container">
+            <input type="text" id="quick-add-country" placeholder="✍️ Type country name to add (e.g. France)..." list="countries-datalist">
+            <datalist id="countries-datalist">
+              <!-- Dynamically populated options for autocompletion -->
+            </datalist>
+            <button id="btn-quick-add" class="btn btn-primary btn-sm">Add Visit</button>
+          </div>
+
           <div class="search-filter-bar">
-            <input type="text" id="search-countries" placeholder="🔍 Search country name...">
+            <input type="text" id="search-countries" placeholder="🔍 Filter list by name...">
           </div>
           
           <!-- Continent Tabs -->
@@ -161,43 +184,7 @@
     </div>
   </div>
 
-  <!-- MODAL: Add Friend -->
-  <div id="modal-friend" class="modal-overlay hidden">
-    <div class="modal-content modal-sm">
-      <div class="modal-header">
-        <h3>👤 Add New Explorer</h3>
-        <span class="modal-close" id="modal-friend-close">&times;</span>
-      </div>
-      <div class="modal-body">
-        <form id="add-friend-form">
-          <div class="form-group">
-            <label for="friend-name">Name</label>
-            <input type="text" id="friend-name" required placeholder="Enter name...">
-          </div>
-          
-          <div class="form-group">
-            <label>Choose Avatar Emoji</label>
-            <div class="avatar-selector">
-              <span class="avatar-option selected" data-emoji="🧑‍🚀">🧑‍🚀</span>
-              <span class="avatar-option" data-emoji="🤠">🤠</span>
-              <span class="avatar-option" data-emoji="🏕️">🏕️</span>
-              <span class="avatar-option" data-emoji="🎒">🎒</span>
-              <span class="avatar-option" data-emoji="🗺️">🗺️</span>
-              <span class="avatar-option" data-emoji="🕶️">🕶️</span>
-              <span class="avatar-option" data-emoji="✈️">✈️</span>
-              <span class="avatar-option" data-emoji="⛵">⛵</span>
-              <span class="avatar-option" data-emoji="🏄">🏄</span>
-              <span class="avatar-option" data-emoji="🦁">🦁</span>
-              <span class="avatar-option" data-emoji="🐼">🐼</span>
-              <span class="avatar-option" data-emoji="🍕">🍕</span>
-            </div>
-          </div>
-          
-          <button type="submit" class="btn btn-primary btn-block">Add Friend</button>
-        </form>
-      </div>
-    </div>
-  </div>
+  <!-- Modal friend form removed -->
 
   <!-- Scripts -->
   <script src="countries.js"></script>

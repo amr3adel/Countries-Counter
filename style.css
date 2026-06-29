@@ -372,6 +372,42 @@ header {
   border-radius: 4px;
 }
 
+.add-friend-form-inline {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--card-border);
+  padding: 0.5rem;
+  border-radius: var(--border-radius-md);
+}
+
+.add-friend-form-inline input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--color-text-main);
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  padding: 0.4rem;
+}
+
+.add-friend-form-inline input:focus {
+  outline: none;
+}
+
+.add-friend-form-inline select.emoji-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--card-border);
+  color: var(--color-text-main);
+  border-radius: var(--border-radius-sm);
+  padding: 0.2rem;
+  font-size: 1.1rem;
+  cursor: pointer;
+  outline: none;
+  font-family: var(--font-family);
+}
+
 /* --- World Map Component --- */
 .map-container {
   display: flex;
@@ -458,6 +494,31 @@ path.country-path.visited-by-multiple {
 .active-friend-selector select:focus {
   outline: none;
   border-color: var(--color-primary);
+}
+
+.quick-add-container {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.quick-add-container input {
+  flex: 1;
+  font-family: var(--font-family);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--card-border);
+  color: var(--color-text-main);
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--border-radius-md);
+  font-size: 0.9rem;
+  transition: var(--transition-fast);
+}
+
+.quick-add-container input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.15);
 }
 
 .search-filter-bar input {
