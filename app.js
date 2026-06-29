@@ -371,7 +371,6 @@ function saveLocalData() {
 // --- CRUD Actions ---
 async function createFriend(name, avatar) {
   const newFriend = {
-    id: dbMode === 'supabase' ? undefined : generateUUID(),
     name,
     avatar
   };
